@@ -1,8 +1,10 @@
 var SpreadSheetID = "1ZfSkVgSC8NrhLRy-F24JHcnvCvLn3YRlocpqI8KQNpI"
 var SheetNames = ["Summary"]
 var EmailSheet = "emails"
-var UsageSheet = ["usage"]
-
+var UsageSheet = ["monthly usage"]
+// to change when these emails are sent
+USAGE_DAY_MO = 1
+ORDER_DAY_WK = 1
 
 function sendMail(){
   var ss = SpreadsheetApp.openById(SpreadSheetID);
@@ -48,7 +50,7 @@ function sendMail(){
   }
 
   // if first of month send email about usage
-  if (now.getDate() == 18){
+  if (now.getDate() == 1){
     // does send as one chunk but UGLY
     for (var j=0; j<email_json.length; j++){
       MailApp.sendEmail({to: email_json[j].email,
@@ -56,7 +58,9 @@ function sendMail(){
                          htmlBody: printStuff(updated_usage),
                          noReply:true})
     }
+  }
 
+  if (now.getDate() == USAGE_DAY_MO){
     // reset at end of month, keeps chart the same but makes usage 0
     for (var i=0; i<usage_array.length; i++){
       updated_usage[i]['usage'] = 0;
@@ -80,8 +84,9 @@ function sendMail(){
 
   day = now.getDay();
   // gets inventory less than amount and sends emails on MONDAY (getDay == 1)
-  if (day == 4){
+  if (day == ORDER_DAY_WK){
     for (var x=0; x<SheetNames.length; x++){
+      // to include multipple sheets except I combined all the summary pages into one
       var sheet = ss.getSheetByName(SheetNames[x]);
       var inventory = getInventory(sheet);
       to_order = toOrder(inventory);
@@ -185,4 +190,3 @@ function printStuff(updated_usage){
   }
   return string;
 }
-
