@@ -5,6 +5,7 @@ var UsageSheet = ["monthly usage"]
 // to change when these emails are sent
 USAGE_DAY_MO = 1
 ORDER_DAY_WK = 1
+hasNotRun = true;
 
 function sendMail(){
   var ss = SpreadsheetApp.openById(SpreadSheetID);
@@ -15,37 +16,38 @@ function sendMail(){
   
   usage_array = getUSAGEInventory(inventoryUsage);
   updated_usage = usage_array;
+
+  // adds total used inventory
+  for (var i=0; i<usage_array.length; i++){
+    //change new total to total (total will be edited)
+    updated_usage[i]['previous'] = usage_array[i]['new'];
+    updated_usage[i]['new'] = usage_array[i]['total'];
+
+    //if new total has gone down, difference is ADDED to total used, shift new total to previous total
+    if (usage_array[i]['new'] < usage_array[i]['previous']){
+      updated_usage[i]['usage'] = usage_array[i]['usage'] + (usage_array[i]['previous'] - usage_array[i]['new']);
+    }
+
+    var headings = ['item', 'total','previous', 'new', 'usage'];
+    var output = [];
+
+    updated_usage.forEach(item => {
+      output.push(headings.map(heading => {
+        return item[heading]
+      }));
+    })
+
+    if (output.length) {
+      output.unshift(headings);
+      inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
+    }
+  }
   
+  // sending email part only happens once on the day it is supposed to send
   while (hasNotRun){
     const now = new Date();
     if (now.getDate() == 1 || now.getDay() == 1){
-      // adds total used inventory
-      for (var i=0; i<usage_array.length; i++){
-        //change new total to total (total will be edited)
-        updated_usage[i]['previous'] = usage_array[i]['new'];
-        updated_usage[i]['new'] = usage_array[i]['total'];
-
-        //if new total has gone down, difference is ADDED to total used, shift new total to previous total
-        if (usage_array[i]['new'] < usage_array[i]['previous']){
-          updated_usage[i]['usage'] = usage_array[i]['usage'] + (usage_array[i]['previous'] - usage_array[i]['new']);
-        }
-
-        var headings = ['item', 'total','previous', 'new', 'usage'];
-        var output = [];
-
-        updated_usage.forEach(item => {
-          output.push(headings.map(heading => {
-            return item[heading]
-          }));
-        })
-
-        if (output.length) {
-          output.unshift(headings);
-          inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
-        }
-      }
-
-      // creates subject for email
+            // creates subject for email
       month = now.getMonth();
       year = now.getFullYear();
       if (month == 0){
