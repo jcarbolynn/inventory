@@ -16,94 +16,105 @@ function sendMail(){
   usage_array = getUSAGEInventory(inventoryUsage);
   updated_usage = usage_array;
   
-  for (var i=0; i<usage_array.length; i++){
-    //change new total to total (total will be edited)
-    updated_usage[i]['previous'] = usage_array[i]['new'];
-    updated_usage[i]['new'] = usage_array[i]['total'];
+  while (hasNotRun){
+    const now = new Date();
+    if (now.getDate() == 1 || now.getDay() == 1){
+      // adds total used inventory
+      for (var i=0; i<usage_array.length; i++){
+        //change new total to total (total will be edited)
+        updated_usage[i]['previous'] = usage_array[i]['new'];
+        updated_usage[i]['new'] = usage_array[i]['total'];
 
-    //if new total has gone down, difference is ADDED to total used, shift new total to previous total
-    if (usage_array[i]['new'] < usage_array[i]['previous']){
-      updated_usage[i]['usage'] = usage_array[i]['usage'] + (usage_array[i]['previous'] - usage_array[i]['new']);
-    }
+        //if new total has gone down, difference is ADDED to total used, shift new total to previous total
+        if (usage_array[i]['new'] < usage_array[i]['previous']){
+          updated_usage[i]['usage'] = usage_array[i]['usage'] + (usage_array[i]['previous'] - usage_array[i]['new']);
+        }
 
-    var headings = ['item', 'total','previous', 'new', 'usage'];
-    var output = [];
+        var headings = ['item', 'total','previous', 'new', 'usage'];
+        var output = [];
 
-    updated_usage.forEach(item => {
-      output.push(headings.map(heading => {
-        return item[heading]
-      }));
-    })
+        updated_usage.forEach(item => {
+          output.push(headings.map(heading => {
+            return item[heading]
+          }));
+        })
 
-    if (output.length) {
-      output.unshift(headings);
-      inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
-    }
-  }
-
-  const now = new Date();
-  month = now.getMonth();
-  year = now.getFullYear();
-  if (month == 0){
-    month = 12;
-    year = year -1;
-  }
-
-  // if first of month send email about usage
-  if (now.getDate() == 1){
-    // does send as one chunk but UGLY
-    for (var j=0; j<email_json.length; j++){
-      MailApp.sendEmail({to: email_json[j].email,
-                         subject: "Usage Report " + month + "/" + year,
-                         htmlBody: printStuff(updated_usage),
-                         noReply:true})
-    }
-  }
-
-  if (now.getDate() == USAGE_DAY_MO){
-    // reset at end of month, keeps chart the same but makes usage 0
-    for (var i=0; i<usage_array.length; i++){
-      updated_usage[i]['usage'] = 0;
-
-      var headings = ['item', 'total','previous', 'new', 'usage'];
-      var output = [];
-
-      updated_usage.forEach(item => {
-        output.push(headings.map(heading => {
-          return item[heading]
-        }));
-      })
-
-      if (output.length) {
-        // Add the headings - delete this next line if headings not required
-        output.unshift(headings);
-        inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
+        if (output.length) {
+          output.unshift(headings);
+          inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
+        }
       }
-    }
-  }
 
-  day = now.getDay();
-  // gets inventory less than amount and sends emails on MONDAY (getDay == 1)
-  if (day == ORDER_DAY_WK){
-    for (var x=0; x<SheetNames.length; x++){
-      // to include multipple sheets except I combined all the summary pages into one
-      var sheet = ss.getSheetByName(SheetNames[x]);
-      var inventory = getInventory(sheet);
-      to_order = toOrder(inventory);
+      // creates subject for email
+      month = now.getMonth();
+      year = now.getFullYear();
+      if (month == 0){
+        month = 12;
+        year = year -1;
+      }
 
-      
-      for (var i=0; i<to_order.length; i++){
+      // if first of month send email about usage
+      if (now.getDate() == USAGE_DAY_MO){
+        // does send as one chunk but UGLY
         for (var j=0; j<email_json.length; j++){
-          item_to_order = to_order[i]['item']
-          num_left = to_order[i]['total']
-          if (num_left == 1){
-            MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottle of " + item_to_order + " left.", noReply:true})
-          }
-          else{
-            MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottles of " + item_to_order + " left.", noReply:true})
+          MailApp.sendEmail({to: email_json[j].email,
+                            subject: "Usage Report " + month + "/" + year,
+                            htmlBody: printStuff(updated_usage),
+                            noReply:true})
+        }
+      }
+
+      // reset at end of month, keeps chart the same but makes usage 0
+      if (now.getDate() == USAGE_DAY_MO){
+        for (var i=0; i<usage_array.length; i++){
+          updated_usage[i]['usage'] = 0;
+
+          var headings = ['item', 'total','previous', 'new', 'usage'];
+          var output = [];
+
+          updated_usage.forEach(item => {
+            output.push(headings.map(heading => {
+              return item[heading]
+            }));
+          })
+
+          if (output.length) {
+            // Add the headings - delete this next line if headings not required
+            output.unshift(headings);
+            inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
           }
         }
-      }   
+      }
+
+      // gets inventory less than to order amount and sends emails on MONDAY (getDay == 1)
+      if (now.getDay() == ORDER_DAY_WK){
+        for (var x=0; x<SheetNames.length; x++){
+          // to include multipple sheets except I combined all the summary pages into one
+          var sheet = ss.getSheetByName(SheetNames[x]);
+          var inventory = getInventory(sheet);
+          to_order = toOrder(inventory);
+
+          
+          for (var i=0; i<to_order.length; i++){
+            for (var j=0; j<email_json.length; j++){
+              item_to_order = to_order[i]['item']
+              num_left = to_order[i]['total']
+              if (num_left == 1){
+                MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottle of " + item_to_order + " left.", noReply:true})
+              }
+              else{
+                MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottles of " + item_to_order + " left.", noReply:true})
+              }
+            }
+          }   
+        }
+      }
+
+      hasNotRun = false;
+    }
+
+    else{
+      hasNotRun = false;
     }
   }
 }
@@ -190,3 +201,4 @@ function printStuff(updated_usage){
   }
   return string;
 }
+
