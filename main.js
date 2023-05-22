@@ -5,7 +5,6 @@ var UsageSheet = ["monthly usage"]
 // to change when these emails are sent
 USAGE_DAY_MO = 1
 ORDER_DAY_WK = 1
-hasNotRun = true;
 
 function sendMail(){
   var ss = SpreadsheetApp.openById(SpreadSheetID);
@@ -44,79 +43,69 @@ function sendMail(){
   }
   
   // sending email part only happens once on the day it is supposed to send
-  while (hasNotRun){
-    const now = new Date();
-    if (now.getDate() == 1 || now.getDay() == 1){
-            // creates subject for email
-      month = now.getMonth();
-      year = now.getFullYear();
-      if (month == 0){
-        month = 12;
-        year = year -1;
-      }
+  const now = new Date();
+  // creates subject for email
+  month = now.getMonth();
+  year = now.getFullYear();
+  if (month == 0){
+    month = 12;
+    year = year -1;
+  }
 
-      // if first of month send email about usage
-      if (now.getDate() == USAGE_DAY_MO){
-        // does send as one chunk but UGLY
+  // if first of month send email about usage
+  if (now.getDate() == USAGE_DAY_MO){
+    // does send as one chunk but UGLY
+    for (var j=0; j<email_json.length; j++){
+      MailApp.sendEmail({to: email_json[j].email,
+                        subject: "Usage Report " + month + "/" + year,
+                        htmlBody: printStuff(updated_usage),
+                        noReply:true})
+    }
+  }
+
+  // reset at end of month, keeps chart the same but makes usage 0
+  if (now.getDate() == USAGE_DAY_MO){
+    for (var i=0; i<usage_array.length; i++){
+      updated_usage[i]['usage'] = 0;
+
+      var headings = ['item', 'total','previous', 'new', 'usage'];
+      var output = [];
+
+      updated_usage.forEach(item => {
+        output.push(headings.map(heading => {
+          return item[heading]
+        }));
+      })
+
+      if (output.length) {
+        // Add the headings - delete this next line if headings not required
+        output.unshift(headings);
+        inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
+      }
+    }
+  }
+
+  // gets inventory less than to order amount and sends emails on MONDAY (getDay == 1)
+  if (now.getDay() == ORDER_DAY_WK){
+    for (var x=0; x<SheetNames.length; x++){
+      // to include multipple sheets except I combined all the summary pages into one
+      var sheet = ss.getSheetByName(SheetNames[x]);
+      var inventory = getInventory(sheet);
+      to_order = toOrder(inventory);
+
+      
+      for (var i=0; i<to_order.length; i++){
         for (var j=0; j<email_json.length; j++){
-          MailApp.sendEmail({to: email_json[j].email,
-                            subject: "Usage Report " + month + "/" + year,
-                            htmlBody: printStuff(updated_usage),
-                            noReply:true})
-        }
-      }
-
-      // reset at end of month, keeps chart the same but makes usage 0
-      if (now.getDate() == USAGE_DAY_MO){
-        for (var i=0; i<usage_array.length; i++){
-          updated_usage[i]['usage'] = 0;
-
-          var headings = ['item', 'total','previous', 'new', 'usage'];
-          var output = [];
-
-          updated_usage.forEach(item => {
-            output.push(headings.map(heading => {
-              return item[heading]
-            }));
-          })
-
-          if (output.length) {
-            // Add the headings - delete this next line if headings not required
-            output.unshift(headings);
-            inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
+          item_to_order = to_order[i]['item']
+          num_left = to_order[i]['total']
+          if (num_left == 1){
+            MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottle of " + item_to_order + " left.", noReply:true})
+          }
+          else{
+            MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottles of " + item_to_order + " left.", noReply:true})
           }
         }
-      }
-
-      // gets inventory less than to order amount and sends emails on MONDAY (getDay == 1)
-      if (now.getDay() == ORDER_DAY_WK){
-        for (var x=0; x<SheetNames.length; x++){
-          // to include multipple sheets except I combined all the summary pages into one
-          var sheet = ss.getSheetByName(SheetNames[x]);
-          var inventory = getInventory(sheet);
-          to_order = toOrder(inventory);
-
-          
-          for (var i=0; i<to_order.length; i++){
-            for (var j=0; j<email_json.length; j++){
-              item_to_order = to_order[i]['item']
-              num_left = to_order[i]['total']
-              if (num_left == 1){
-                MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottle of " + item_to_order + " left.", noReply:true})
-              }
-              else{
-                MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottles of " + item_to_order + " left.", noReply:true})
-              }
-            }
-          }   
-        }
-      }
-
-      hasNotRun = false;
-    }
-
-    else{
-      hasNotRun = false;
+      }   
     }
   }
 }
