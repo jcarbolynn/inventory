@@ -53,7 +53,7 @@ function sendMail(){
   }
 
   // if first of month send email about usage
-  if (now.getDate() == USAGE_DAY_MO){
+  if (now.getDate() == USAGE_DAY_MO && now.getHours() < 8){
     // does send as one chunk but UGLY
     for (var j=0; j<email_json.length; j++){
       MailApp.sendEmail({to: email_json[j].email,
@@ -64,7 +64,7 @@ function sendMail(){
   }
 
   // reset at end of month, keeps chart the same but makes usage 0
-  if (now.getDate() == USAGE_DAY_MO){
+  if (now.getDate() == USAGE_DAY_MO && now.getHours() < 8){
     for (var i=0; i<usage_array.length; i++){
       updated_usage[i]['usage'] = 0;
 
@@ -86,7 +86,7 @@ function sendMail(){
   }
 
   // gets inventory less than to order amount and sends emails on MONDAY (getDay == 1)
-  if (now.getDay() == ORDER_DAY_WK){
+  if (now.getDay() == ORDER_DAY_WK && now.getHours() < 8){
     for (var x=0; x<SheetNames.length; x++){
       // to include multipple sheets except I combined all the summary pages into one
       var sheet = ss.getSheetByName(SheetNames[x]);
