@@ -30,11 +30,31 @@ function sendMail(){
     var headings = ['item', 'total','previous', 'new', 'usage'];
     var output = [];
 
+    // NICE! it worked! mostly just need to insert a variable better?
+    // use backtics with ${variable}
+    for (var i=0; i<usage_array.length; i++){
+      const item = updated_usage[i]["item"];
+      updated_usage[i]['total'] = `=SUMIF(\'Media/Serum\'!A:A, \"\*${item}\*\", \'Media/Serum\'!G:G)`;
+    }
+
     updated_usage.forEach(item => {
       output.push(headings.map(heading => {
+        // if (heading == 'total'){
+        //   output.push("=SUMIF('Media/Serum'!A:A, '*${item}*', 'Media/Serum'!G:G)")
+        // }
+        // above code creates list of these (below):
+        // '=SUMIF(\'Media/Serum\'!A:A, \'*${item}*\', \'Media/Serum\'!G:G)',
+        // [ 'Pen Strep', 9, 9, 9, 0 ] 
+        // I want that first 9 to be '=SUMIF(\'Media/Serum\'!A:A, \'*${item}*\', \'Media/Serum\'!G:G)'
+        // change updated_usage instead?
+
         return item[heading]
       }));
     })
+
+    // =SUMIF('Media/Serum'!A:A, "*Trypsin*", 'Media/Serum'!G:G)
+
+    console.log(output);
 
     if (output.length) {
       output.unshift(headings);
@@ -53,8 +73,8 @@ function sendMail(){
   }
 
   // if first of month send email about usage
-  if (now.getDate() == USAGE_DAY_MO && now.getHours() < 8){
-    // does send as one chunk but UGLY
+  if (now.getDate() == USAGE_DAY_MO && now.getHours() < 7){
+    // https://sheetsiq.com/google-sheets/app-script/copy-an-array-into-a-sheet-google-sheet/
     for (var j=0; j<email_json.length; j++){
       MailApp.sendEmail({to: email_json[j].email,
                         subject: "Usage Report " + month + "/" + year,
@@ -64,7 +84,7 @@ function sendMail(){
   }
 
   // reset at end of month, keeps chart the same but makes usage 0
-  if (now.getDate() == USAGE_DAY_MO && now.getHours() < 8){
+  if (now.getDate() == USAGE_DAY_MO && now.getHours() < 7){
     for (var i=0; i<usage_array.length; i++){
       updated_usage[i]['usage'] = 0;
 
@@ -86,7 +106,7 @@ function sendMail(){
   }
 
   // gets inventory less than to order amount and sends emails on MONDAY (getDay == 1)
-  if (now.getDay() == ORDER_DAY_WK && now.getHours() < 8){
+  if (now.getDay() == ORDER_DAY_WK && now.getHours() < 7){
     for (var x=0; x<SheetNames.length; x++){
       // to include multipple sheets except I combined all the summary pages into one
       var sheet = ss.getSheetByName(SheetNames[x]);
