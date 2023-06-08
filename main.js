@@ -54,7 +54,7 @@ function sendMail(){
 
     // =SUMIF('Media/Serum'!A:A, "*Trypsin*", 'Media/Serum'!G:G)
 
-    console.log(output);
+    // console.log(output);
 
     if (output.length) {
       output.unshift(headings);
@@ -73,12 +73,13 @@ function sendMail(){
   }
 
   // if first of month send email about usage
+  // if (now.getDate() == 8){
   if (now.getDate() == USAGE_DAY_MO && now.getHours() < 7){
     // https://sheetsiq.com/google-sheets/app-script/copy-an-array-into-a-sheet-google-sheet/
     for (var j=0; j<email_json.length; j++){
       MailApp.sendEmail({to: email_json[j].email,
                         subject: "Usage Report " + month + "/" + year,
-                        htmlBody: printStuff(updated_usage),
+                        htmlBody: printMonthlyUsage(updated_usage),
                         noReply:true})
     }
   }
@@ -106,26 +107,20 @@ function sendMail(){
   }
 
   // gets inventory less than to order amount and sends emails on MONDAY (getDay == 1)
+  // if (now.getDay() == 4){
   if (now.getDay() == ORDER_DAY_WK && now.getHours() < 7){
     for (var x=0; x<SheetNames.length; x++){
       // to include multipple sheets except I combined all the summary pages into one
       var sheet = ss.getSheetByName(SheetNames[x]);
       var inventory = getInventory(sheet);
-      to_order = toOrder(inventory);
+      var to_order = toOrder(inventory);
 
-      
-      for (var i=0; i<to_order.length; i++){
-        for (var j=0; j<email_json.length; j++){
-          item_to_order = to_order[i]['item']
-          num_left = to_order[i]['total']
-          if (num_left == 1){
-            MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottle of " + item_to_order + " left.", noReply:true})
-          }
-          else{
-            MailApp.sendEmail({to: email_json[j].email, subject: item_to_order, htmlBody: num_left + " bottles of " + item_to_order + " left.", noReply:true})
-          }
-        }
-      }   
+      for (var j=0; j<email_json.length; j++){
+        MailApp.sendEmail({to: email_json[j].email,
+                          subject: "Inventory to Restock",
+                          htmlBody: printToOrder(to_order),
+                          noReply:true})
+      }
     }
   }
 }
@@ -204,12 +199,33 @@ function getEmails(email_sheet){
   return jo;
 }
 
-function printStuff(updated_usage){
-  string = "";
-  for (var i=0; i<usage_array.length; i++){
-    temp = JSON.stringify(updated_usage[i]['item']) + ": " + JSON.stringify(updated_usage[i]['usage'])+ ",   ";
+function printToOrder(to_order){
+  string = "<html><body><br><table border=1><tr><th>Item</th><th>Amount Remaining</th></tr></br>";
+  for (var i=0; i<to_order.length; i++){
+    string = string + "<tr>";
+
+    temp = `<td> ${to_order[i]['item']} </td><td> ${to_order[i]['total']}`;
     string = string.concat(temp);
+
+    string = string + "</tr>";
   }
+  string = string + "</table></body></html>";
   return string;
 }
+
+function printMonthlyUsage(updated_usage){
+  string = "<html><body><br><table border=1><tr><th>Item</th><th>Monthly Usage</th></tr></br>";
+  for (var i=0; i<usage_array.length; i++){
+    string = string + "<tr>";
+
+    temp = `<td> ${updated_usage[i]['item']} </td><td> ${updated_usage[i]['usage']}`;
+    string = string.concat(temp);
+
+    string = string + "</tr>";
+  }
+  string = string + "</table></body></html>";
+  return string;
+}
+
+
 
