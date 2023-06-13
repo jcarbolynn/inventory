@@ -26,40 +26,26 @@ function sendMail(){
     if (usage_array[i]['new'] < usage_array[i]['previous']){
       updated_usage[i]['usage'] = usage_array[i]['usage'] + (usage_array[i]['previous'] - usage_array[i]['new']);
     }
+  }
 
-    var headings = ['item', 'total','previous', 'new', 'usage'];
-    var output = [];
+  var headings = ['item', 'total','previous', 'new', 'usage'];
+  var output = [];
 
-    // NICE! it worked! mostly just need to insert a variable better?
-    // use backtics with ${variable}
-    for (var i=0; i<usage_array.length; i++){
-      const item = updated_usage[i]["item"];
-      updated_usage[i]['total'] = `=SUMIF(\'Media/Serum\'!A:A, \"\*${item}\*\", \'Media/Serum\'!G:G)`;
-    }
+  // use backtics with ${variable}
+  for (var i=0; i<usage_array.length; i++){
+    const item = updated_usage[i]["item"];
+    updated_usage[i]['total'] = `=SUMIF(\'Media/Serum\'!A:A, \"\*${item}\*\", \'Media/Serum\'!G:G)`;
+  }
 
-    updated_usage.forEach(item => {
-      output.push(headings.map(heading => {
-        // if (heading == 'total'){
-        //   output.push("=SUMIF('Media/Serum'!A:A, '*${item}*', 'Media/Serum'!G:G)")
-        // }
-        // above code creates list of these (below):
-        // '=SUMIF(\'Media/Serum\'!A:A, \'*${item}*\', \'Media/Serum\'!G:G)',
-        // [ 'Pen Strep', 9, 9, 9, 0 ] 
-        // I want that first 9 to be '=SUMIF(\'Media/Serum\'!A:A, \'*${item}*\', \'Media/Serum\'!G:G)'
-        // change updated_usage instead?
+  updated_usage.forEach(item => {
+    output.push(headings.map(heading => {
+      return item[heading]
+    }));
+  })
 
-        return item[heading]
-      }));
-    })
-
-    // =SUMIF('Media/Serum'!A:A, "*Trypsin*", 'Media/Serum'!G:G)
-
-    // console.log(output);
-
-    if (output.length) {
-      output.unshift(headings);
-      inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
-    }
+  if (output.length) {
+    output.unshift(headings);
+    inventoryUsage.getRange(1, 1, output.length, output[0].length).setValues(output);
   }
   
   // sending email part only happens once on the day it is supposed to send
